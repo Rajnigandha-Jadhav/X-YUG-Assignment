@@ -1,5 +1,8 @@
 const adminModel = require('../models/adminModel')
-const { regexName,  regexEmail, regexPassword } = require('../validators/validator')
+const userModel = require('../models/userModel')
+const leaveModel = require("../models/leaveModel")
+const jwt = require("jsonwebtoken")
+const { regexName,  regexEmail, regexPassword, isValidObjectId } = require('../validators/validator')
 
 const createAdmin= async function (req, res) {
     try {
@@ -65,18 +68,18 @@ const adminLogin = async function (req, res) {
             return res.status(400).send({ status: false, message: 'please provide password' })
         }
 
-        let user = await adminModel.findOne({ email })
-        if (!user) {
-            return res.status(400).send({ status: false, message: 'email does not exist' })
+        let admin = await adminModel.findOne({ email:email, password:password })
+        if (!admin) {
+            return res.status(400).send({ status: false, message: 'email or password does not exist' })
         }
         let token = jwt.sign({
-            adminId: user._id,
+            adminId: admin._id,
 
         }, 'Node.js_Task',
             { expiresIn: "5hr" })
 
 
-        let obj = { userId: user._id, token: token }
+        let obj = { adminId: admin._id, token: token }
         
         res.status(201).send({ status: true, message: 'log in successfully', data:obj})
 
@@ -87,4 +90,38 @@ const adminLogin = async function (req, res) {
 }
 
 
-module.exports = {createAdmin,adminLogin}
+
+
+const leavePost = async function (req,res){
+    try{
+        let userId = req.params.userId
+        if (!userId) {
+            return res.status(400).send({ status: false, message: "please provide userId" })
+        }
+        if (!isValidObjectId(userId)) return res.status(400).send({ status: false, msg: "userId is invalid" })
+
+        let user = await userModel.findById(userId)
+        if(!user){
+            return res.status(404).send({ status: false, message: 'user does not exist' })
+        }
+
+        let userLeaveApplication = await leaveModel.findOne({userId:userId})
+        if(!userLeaveApplication){
+            return res.status(404).send({ status: false, message: 'user has not applied for any Leave' })
+        }
+
+        if(!req.adminId == req.params.adminId){
+            return res.status(400).send({ status: false, message: 'Unauthorized person' })
+        }
+
+        let statusUpdate = await leaveModel.findOneAndUpdate({userId:userId}, {$set:{status:"Approved"}}, {new:true})
+        return res.status(200).send({status:true, message:"Leave Application Approved", data:statusUpdate})
+
+    }catch (error) {
+        return res.status(500).send({ status: false, error: error.message })
+    }
+
+}
+
+
+module.exports = {createAdmin,adminLogin,leavePost}

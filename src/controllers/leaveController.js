@@ -34,4 +34,19 @@ const createLeaveDoc= async function (req, res) {
 
 
 
-module.exports = { createLeaveDoc }
+const getLeaves = async function(req,res){
+    try{
+        let Leaves = await leaveModel.find().populate("userId")
+        let dateWiseLeaves = Leaves.sort(function(a,b){
+            return new Date(a.from) - new Date(b.from);
+          });
+        return res.status(200).send({status:true,message:"All Leave Applications", data:dateWiseLeaves})
+
+    }catch (error) {
+        return res.status(500).send({ status: false, error: error.message })
+    }
+}
+
+
+
+module.exports = { createLeaveDoc,getLeaves }

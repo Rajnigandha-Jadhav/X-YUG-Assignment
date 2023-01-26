@@ -15,7 +15,12 @@ const leaveSchema = new mongoose.Schema({
         type: ObjectId,
         ref: "User",
         required: true
-    }    
+    },
+    status : {
+        type: [String],
+        enum : ["Pending", "Approved", "Rejected"],
+        default : "Pending"
+    }   
 });
 
 module.exports = mongoose.model('Leaves', leaveSchema)
